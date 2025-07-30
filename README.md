@@ -1,11 +1,10 @@
-# Payra PHP SDK
+# Payra PHP SDK (Backend Signature Generation)
 
-Official PHP SDK for integrating **Payra's on-chain payment system** into your backend.  
-Provides a simple way to generate secure ECDSA signatures compatible with the Payra smart contract (e.g. for payment verification).
+Official PHP SDK for integrating **Payra's on-chain payment system** into your backend.  Provides a simple way to generate secure ECDSA signatures compatible with the Payra smart contract (e.g. for payment verification).
 
 ---
 
-## 🚀 Features
+## Features
 
 - Ethereum ECDSA signature generation using the `secp256k1` curve  
 - Compatible with Payra's Solidity contracts (ERC-1155 payment verification)
@@ -14,7 +13,17 @@ Provides a simple way to generate secure ECDSA signatures compatible with the Pa
 
 ---
 
-## 📦 Installation
+## SETUP
+
+Before installing this package, make sure you have an active Payra account:
+
+- [https://payra.cash](https://payra.cash)
+
+You will need your merchantID and a dedicated account (private key) to generate valid payment signatures.
+
+---
+
+## Installation
 
 ### Via Composer (recommended)
 
@@ -32,7 +41,7 @@ composer install
 
 ---
 
-## ⚙️ Environment Setup
+## Environment Setup
 
 Create a `.env` file with the following variables:
 
@@ -49,7 +58,7 @@ PAYRA_LINEA_MERCHANT_ID=
 
 ---
 
-## 🧪 Usage Example
+## Usage Example
 
 ```php
 use App\Payra\PayraSignatureGenerator;
@@ -76,13 +85,30 @@ $signature = $generator->generateSignature(
 
 ---
 
-## 🛡 Security Notice
+## Security Notice
 
 Never expose your private key in frontend code or client-side environments.  
 This SDK is **server-side only** and must be used securely on your backend.
 
 ---
 
-## 📄 License
+## Project
+
+-   [https://payra.cash](https://payra.cash)
+-   [https://payra.tech](https://payra.tech)
+-   [https://payra.xyz](https://payra.xyz)
+-   [https://payra.eth](https://payra.eth)
+
+---
+
+## Social Media
+
+- [Telegram Payra Group](https://t.me/+GhTyJJrd4SMyMDA0)
+- [Telegram Announcements](https://t.me/payracash)
+- [Twix (X)](https://x.com/PayraCash)
+
+---
+
+##  License
 
 MIT © [Payra](https://github.com/payracash)
