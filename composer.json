@@ -1,0 +1,25 @@
+{
+  "name": "payra/sdk-php",
+  "description": "Official PHP SDK for Payra on-chain payment signature generation.",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Wraith",
+      "email": "contact@payra.cash"
+    }
+  ],
+  "require": {
+    "php": ">=7.4",
+    "vlucas/phpdotenv": "^5.6",
+    "simplito/elliptic-php": "^1.0",
+    "web3p/web3.php": "^0.3.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\Payra\\": "src/Payra/"
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

@@ -1,0 +1,23 @@
+```gitignore
+# PHP specific
+/vendor/
+.env
+.env.local
+*.log
+*.cache
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# Composer
+composer.lock
+
+# Others
+/public/*.sig
+/public/*.bak
