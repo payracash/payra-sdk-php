@@ -67,19 +67,15 @@ use App\Payra\PayraSignatureGenerator;
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-$network = 'polygon';
-$merchantPrivateKey = $_ENV['PAYRA_' . strtoupper($network) . '_PRIVATE_KEY'];
-$merchantId = $_ENV['PAYRA_' . strtoupper($network) . '_MERCHANT_ID'];
-
-$generator = new PayraSignatureGenerator($merchantPrivateKey);
+$generator = new PayraSignatureGenerator();
 
 $signature = $generator->generateSignature(
-    $tokenAddress,
-    $merchantId,
-    $orderId,
-    $amount,
+    $network,         // e.g. "polygon"
+    $tokenAddress,    // ERC-20 USDT or USDC
+    $orderId,         // string (unique per merchantId)
+    $amount,          // in Wei $1 = 1_000_000
     (int) $timestamp,
-    $payerAddress
+    $payerAddress     // Public payer wallet address
 );
 ```
 
