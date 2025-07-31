@@ -7,7 +7,6 @@ use Web3\Utils;
 
 class PayraSignatureGenerator
 {
-    private string $merchantPrivateKey;
     private Ec $ec;
     private Ethabi $ethabi;
     private Utils $utils;
@@ -18,9 +17,8 @@ class PayraSignatureGenerator
      * @param string $merchantPrivateKey Your Ethereum private key (64 hex characters, without '0x').
      * @throws \Exception If the private key is invalid.
      */
-    public function __construct(string $merchantPrivateKey)
+    public function __construct()
     {
-        $this->merchantPrivateKey = $merchantPrivateKey;
         $this->ec = new EC('secp256k1');
         $this->ethabi = new Ethabi;
         $this->utils = new Utils;
@@ -39,14 +37,24 @@ class PayraSignatureGenerator
      * @throws \Exception If an error occurs during signature generation.
      */
     public function generateSignature(
+        string $network,
         string $tokenAddress,
-        string $merchantId,
         string $orderId,
         string $amount,
         int $timestamp,
         string $payerAddress,
     ): string {
+        $network = strtoupper($network);
+
+        $merchantPrivateKey = $_ENV["PAYRA_{$network}_PRIVATE_KEY"] ?? null;
+        $merchantId = $_ENV["PAYRA_{$network}_MERCHANT_ID"] ?? null;
+
+        if (!$merchantPrivateKey || !$merchantId) {
+            throw new \Exception("Missing merchant credentials for network: $network");
+        }
+
         try {
+
           $types = ['address', 'uint256', 'string', 'uint256', 'uint256', 'address'];
           $values = [$tokenAddress, $merchantId, $orderId, $amount, $timestamp, $payerAddress];
 
@@ -55,7 +63,7 @@ class PayraSignatureGenerator
           $prefixedMessage = "\x19Ethereum Signed Message:\n32" . hex2bin($messageHash);
           $finalHash = $this->utils::sha3($prefixedMessage);
 
-          $key = $this->ec->keyFromPrivate($this->merchantPrivateKey, 'hex');
+          $key = $this->ec->keyFromPrivate($merchantPrivateKey, 'hex');
           $signature = $key->sign($finalHash, ['canonical' => true]);
 
           $r = str_pad($signature->r->toString(16), 64, '0', STR_PAD_LEFT);

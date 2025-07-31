@@ -27,6 +27,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// Check content type
+if (
+    !isset($_SERVER['CONTENT_TYPE']) ||
+    stripos($_SERVER['CONTENT_TYPE'], 'application/json') === false
+) {
+    http_response_code(415); // Unsupported Media Type
+    echo json_encode(['status' => 'error', 'message' => 'Content-Type must be application/json.']);
+    exit;
+}
+
 // Get JSON input data from the request
 $input = file_get_contents('php://input');
 $data = json_decode($input, true);
@@ -38,7 +48,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 // Validate params
-$requiredParams = ['tokenAddress', 'orderId', 'amount', 'timestamp'];
+$requiredParams = ['network', 'tokenAddress', 'orderId', 'amount', 'timestamp', 'payerAddress'];
 foreach ($requiredParams as $param) {
     if (!isset($data[$param])) {
         http_response_code(400);
@@ -47,21 +57,14 @@ foreach ($requiredParams as $param) {
     }
 }
 
-$merchantPrivateKey = $_ENV['PAYRA_' . strtoupper($data['network']) . '_PRIVATE_KEY'] ?? null;
-$merchantId = $_ENV['PAYRA_' . strtoupper($data['network']) . '_MERCHANT_ID'] ?? null;
-
-if (!$merchantPrivateKey || !$merchantId) {
-    throw new \Exception("Missing PAYRA config for network: $network");
-}
-
 try {
     // Instance "SDK"
-    $signatureGenerator = new App\Payra\PayraSignatureGenerator($merchantPrivateKey);
+    $signatureGenerator = new App\Payra\PayraSignatureGenerator();
 
     // Call generate Signature
     $signature = $signatureGenerator->generateSignature(
+        $data['network'],
         $data['tokenAddress'],
-        $merchantId,
         $data['orderId'],
         $data['amount'],
         (int) $data['timestamp'], // cast timestamp to int,
@@ -76,9 +79,9 @@ try {
     ]);
 
 } catch (\Exception $e) {
-    // Error ABI encodingu
-    http_response_code(500); // Internal Server Error
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    error_log('Signature error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['status' => 'error', 'message' => 'Internal server error.']);
 }
 
 ?>
