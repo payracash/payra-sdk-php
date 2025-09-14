@@ -26,13 +26,13 @@ class PayraSignatureGenerator
 
     /**
      * Generates a signature for a Payra PayOrder transaction.
-     *
      * IMPORTANT: The order and types of parameters MUST match EXACTLY as expected by the Payra smart contract.
-     *
+     * @param string $network name (e.g., 'polygon').
      * @param string $tokenAddress Address of the ERC-20 token (e.g., '0xc2132D05D31c914a87C6611C10748AEb04B58eF').
      * @param string $orderId Unique identifier of the order (e.g., 'order_19_984723').
      * @param string $amount Amount in the smallest unit of the token (e.g., '13360000' for 1.336 USDT).
      * @param int $timestamp Transaction time in Unix timestamp format (e.g., 1728392929).
+     * @param string $payerAddress Payer wallet Address (e.g., '0xc87a3D05D31c914a87C6611C10748AEb0a5e$2').
      * @return string Signature in the format '0x<r><s><v>' (65-byte hex with '0x' prefix).
      * @throws \Exception If an error occurs during signature generation.
      */
@@ -54,23 +54,23 @@ class PayraSignatureGenerator
         }
 
         try {
+          
+            $types = ['address', 'uint256', 'string', 'uint256', 'uint256', 'address'];
+            $values = [$tokenAddress, $merchantId, $orderId, $amount, $timestamp, $payerAddress];
 
-          $types = ['address', 'uint256', 'string', 'uint256', 'uint256', 'address'];
-          $values = [$tokenAddress, $merchantId, $orderId, $amount, $timestamp, $payerAddress];
+            $encoded = $this->ethabi->encodeParameters($types, $values);
+            $messageHash = ltrim($this->utils::sha3($encoded), '0x');
+            $prefixedMessage = "\x19Ethereum Signed Message:\n32" . hex2bin($messageHash);
+            $finalHash = $this->utils::sha3($prefixedMessage);
 
-          $encoded = $this->ethabi->encodeParameters($types, $values);
-          $messageHash = ltrim($this->utils::sha3($encoded), '0x');
-          $prefixedMessage = "\x19Ethereum Signed Message:\n32" . hex2bin($messageHash);
-          $finalHash = $this->utils::sha3($prefixedMessage);
+            $key = $this->ec->keyFromPrivate($merchantPrivateKey, 'hex');
+            $signature = $key->sign($finalHash, ['canonical' => true]);
 
-          $key = $this->ec->keyFromPrivate($merchantPrivateKey, 'hex');
-          $signature = $key->sign($finalHash, ['canonical' => true]);
+            $r = str_pad($signature->r->toString(16), 64, '0', STR_PAD_LEFT);
+            $s = str_pad($signature->s->toString(16), 64, '0', STR_PAD_LEFT);
+            $v = dechex($signature->recoveryParam + 27);
 
-          $r = str_pad($signature->r->toString(16), 64, '0', STR_PAD_LEFT);
-          $s = str_pad($signature->s->toString(16), 64, '0', STR_PAD_LEFT);
-          $v = dechex($signature->recoveryParam + 27);
-
-          return '0x' . $r . $s . $v;
+            return '0x' . $r . $s . $v;
 
         } catch (\Exception $e) {
             error_log('Error generating Payra signature: ' . $e->getMessage());
