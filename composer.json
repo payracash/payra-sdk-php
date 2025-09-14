@@ -1,6 +1,6 @@
 {
   "name": "payracash/payra-sdk-php",
-  "description": "Official PHP SDK for Payra on-chain payment signature generation.",
+  "description": "Official PHP SDK for Payra on-chain payment system: signature generation and order status verification.",
   "type": "library",
   "license": "MIT",
   "authors": [
