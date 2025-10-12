@@ -24,12 +24,12 @@ class PayraOrderVerification
     public function isOrderPaid(string $network, string $orderId): array
     {
         $network = strtoupper($network);
-        $quickNode = $this->getQuickNodeUrl($network);
+        $rpcUrl = $this->getRpcUrl($network);
 
         $merchantId = $_ENV["PAYRA_{$network}_MERCHANT_ID"] ?? null;
         $forwardAddress = $_ENV["PAYRA_{$network}_CORE_FORWARD_CONTRACT_ADDRESS"] ?? null;
 
-        $provider = new HttpProvider($quickNode, 5);
+        $provider = new HttpProvider($rpcUrl, 5);
         $web3 = new Web3($provider);
         $ethabi = new Ethabi;
 
@@ -101,36 +101,37 @@ class PayraOrderVerification
     }
 
     /**
-     * Generate the QuickNode RPC endpoint URL for a given blockchain network.
+     * Generate the RPC URL for a given blockchain network.
      *
      * This method retrieves the base RPC URL template for the specified network
-     * and replaces the placeholder `{API_KEY}` with the QuickNode API key from
+     * and replaces the placeholder `{API_KEY}` with the key from
      * the environment configuration (`QUICK_NODE_RPC_API_KEY`).
      *
      * @param string $network Target blockchain network identifier (e.g., "POLYGON", "ETHEREUM").
-     * @return string Fully qualified QuickNode RPC endpoint URL with API key included.
+     * @return string Fully qualified RPC URL with API key included.
      * @throws \Exception If the API key is missing from the environment or
      *                    if the provided network is not supported.
      */
-    private function getQuickNodeUrl(string $network): string
+    private function getRpcUrl(string $network): string
     {
-        $rpcMap = [
-            'POLYGON'  => 'https://warmhearted-ancient-shadow.matic.quiknode.pro/{API_KEY}',
-            'ETHEREUM' => 'https://warmhearted-ancient-shadow.quiknode.pro/{API_KEY}',
-            'LINEA'    => 'https://warmhearted-ancient-shadow.linea-mainnet.quiknode.pro/{API_KEY}',
-            'FLARE'    => 'https://warmhearted-ancient-shadow.flare-mainnet.quiknode.pro/{API_KEY}/ext/bc/C/rpc/',
-        ];
+        $network = strtoupper($network);
 
-        $apiKey = $_ENV['QUICK_NODE_RPC_API_KEY'] ?? null;
-        if (!$apiKey) {
-            throw new \Exception('QUICK_NODE_RPC_API_KEY is not set!');
+        $urls = [];
+        $i = 1;
+
+        while (true) {
+            $envKey = "PAYRA_{$network}_RPC_URL_{$i}";
+            $value = $_ENV[$envKey] ?? getenv($envKey);
+            if (!$value) break;
+            $urls[] = trim($value);
+            $i++;
         }
 
-        if (!isset($rpcMap[$network])) {
-            throw new \Exception("Unsupported network: {$network}");
+        if (empty($urls)) {
+            throw new \Exception("No RPC URLs found for network: {$network}");
         }
 
-        return str_replace('{API_KEY}', $apiKey, $rpcMap[$network]);
+        return $urls[array_rand($urls)];
     }
 
     /**

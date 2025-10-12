@@ -3,6 +3,9 @@
 // Requires Composer's autoloader to initialize all classes
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use App\Payra\PayraSignatureGenerator;
+use App\Payra\PayraUtils;
+
 // Load environment variables from the .env file
 use Dotenv\Dotenv;
 $dotenv = Dotenv::createImmutable(dirname(__DIR__));
@@ -48,7 +51,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 // Validate params
-$requiredParams = ['network', 'tokenAddress', 'orderId', 'amount', 'timestamp', 'payerAddress'];
+$requiredParams = ['network', 'tokenAddress', 'orderId', 'amountWei', 'timestamp', 'payerAddress'];
 foreach ($requiredParams as $param) {
     if (!isset($data[$param])) {
         http_response_code(400);
@@ -58,15 +61,18 @@ foreach ($requiredParams as $param) {
 }
 
 try {
+    // Convert USD to Wei if you need
+    //$amountWei = PayraUtils::toWei(3.45, 'polygon', 'usdt');
+
     // Instance "SDK"
-    $signatureGenerator = new App\Payra\PayraSignatureGenerator();
+    $signatureGenerator = new PayraSignatureGenerator();
 
     // Call generate Signature
     $signature = $signatureGenerator->generateSignature(
         $data['network'],
         $data['tokenAddress'],
         $data['orderId'],
-        $data['amount'],
+        $data['amountWei'], // inWei
         (int) $data['timestamp'], // cast timestamp to int,
         $data['payerAddress']
     );

@@ -3,6 +3,8 @@
 // Requires Composer's autoloader to initialize all classes
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use App\Payra\PayraOrderVerification;
+
 // Load environment variables from the .env file
 use Dotenv\Dotenv;
 $dotenv = Dotenv::createImmutable(dirname(__DIR__));
@@ -59,7 +61,7 @@ foreach ($requiredParams as $param) {
 
 try {
     // Instance "SDK"
-    $orderVerification = new App\Payra\PayraOrderVerification();
+    $orderVerification = new PayraOrderVerification();
 
     // Call order verification (zwraca array)
     $verify = $orderVerification->isOrderPaid(
