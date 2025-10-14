@@ -61,7 +61,7 @@ foreach ($requiredParams as $param) {
 }
 
 try {
-    // Convert USD to Wei if you need
+    //Convert USD to Wei if you need
     //$amountWei = PayraUtils::toWei(3.45, 'polygon', 'usdt');
 
     // Instance "SDK"

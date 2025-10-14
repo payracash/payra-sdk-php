@@ -135,8 +135,8 @@ class PayraOrderVerification
     }
 
     /**
-      * Find function in ABI by name
-      */
+     * Find function in ABI by name
+     */
     private function findFunction(array $abi, string $name): array
     {
         foreach ($abi as $entry) {
