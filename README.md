@@ -117,9 +117,9 @@ PAYRA_LINEA_RPC_URL_2=
 
 ### Notes
 
--   Each  **`_PRIVATE_KEY`**  and  **`_MERCHANT_ID`**  pair must belong to the same blockchain network.
+-   Each  **`PRIVATE_KEY`**  and  **`MERCHANT_ID`**  pair must belong to the same blockchain network.
 
-- You can define multiple RPC URLs per network (`_RPC_URL_1`, `_RPC_URL_2`, `_RPC_URL_3`, …).  
+- You can define multiple RPC URLs per network (`RPC_URL_1`, `RPC_URL_2`, `RPC_URL_3`, …).  
   **Note:** At least one RPC URL must be provided per network — otherwise, on-chain status checks will fail.  
   The SDK randomly selects one URL for better reliability and load distribution.
 

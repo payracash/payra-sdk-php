@@ -3,7 +3,8 @@ namespace App\Payra;
 
 class PayraUtils
 {
-    private static array $defaultDecimals = [
+    private static array $defaultDecimals =
+    [
         'POLYGON_USDT'  => 6,
         'POLYGON_USDC'  => 6,
     ];
@@ -36,37 +37,32 @@ class PayraUtils
         return number_format((float)$value, $precision, '.', '');
     }
 
-
-    /**
-     * Convert given amount from any supported currency to USD
-     * using the ExchangeRate API (https://www.exchangerate-api.com/).
-     *
-     * @param float $amount
-     * @param string $fromCurrency (e.g. "PLN", "EUR", "GBP")
-     * @return float
-     * @throws \Exception
-     */
     public static function convertToUSD(float $amount, string $fromCurrency): float
     {
         $apiKey = $_ENV['EXCHANGE_RATE_API_KEY'] ?? null;
 
         if (!$apiKey) {
-            throw new \Exception('EXCHANGE_RATE_API_KEY is not set. Please register at exchangerate-api.com');
+            throw new \Exception('EXCHANGE_RATE_API_KEY is not set. Please paste the full API URL');
         }
 
-        $fromCurrency = strtoupper($fromCurrency);
-        $url = "https://v6.exchangerate-api.com/v6/{$apiKey}/latest/{$fromCurrency}";
+        $apiUrl = "https://v6.exchangerate-api.com/v6/{$apiKey}/latest/USD";
 
-        $response = @file_get_contents($url);
+        $fromCurrency = strtoupper($fromCurrency);
+
+        $response = @file_get_contents($apiUrl);
         if ($response === false) {
             throw new \Exception("Failed to connect to ExchangeRate API.");
         }
 
         $data = json_decode($response, true);
-        if (empty($data['conversion_rates']['USD'])) {
-            throw new \Exception("USD conversion rate not found for {$fromCurrency}");
+
+        if (empty($data['conversion_rates'][$fromCurrency])) {
+            throw new \Exception("Conversion rate for {$fromCurrency} not found in API response.");
         }
 
-        return round($amount * $data['conversion_rates']['USD'], 2);
+        $rate = $data['conversion_rates'][$fromCurrency];
+        $usdValue = round($amount / $rate, 2);
+
+        return $usdValue;
     }
 }
