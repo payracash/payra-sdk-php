@@ -26,7 +26,6 @@ The typical flow for signing and verifying a Payra transaction:
 
 This process ensures full compatibility between your backend and Payra’s on-chain verification logic.
 
-
 ## Features
 
 - Generates **Ethereum ECDSA signatures** using the `secp256k1` curve.
@@ -91,7 +90,8 @@ Create a (`.env`) file in your project root and define the following variables:
 
 ```env
 # Optional — only needed if you want to use the built-in currency conversion helper
-EXCHANGE_RATE_API_KEY=
+EXCHANGE_RATE_API_KEY=         # Your ExchangeRate API key (from exchangerate-api.com)
+EXCHANGE_RATE_CACHE_TIME=720   # Cache duration in minutes (default: 720 = 12h)
 
 # Polygon Network Configuration
 PAYRA_POLYGON_CORE_FORWARD_CONTRACT_ADDRESS=0xf30070da76B55E5cB5750517E4DECBD6Cc5ce5a8
@@ -115,15 +115,17 @@ PAYRA_LINEA_RPC_URL_1=
 PAYRA_LINEA_RPC_URL_2=
 ```
 
-### Notes
+#### Important Notes
 
--   Each  **`PRIVATE_KEY`**  and  **`MERCHANT_ID`**  pair must belong to the same blockchain network.
-
-- You can define multiple RPC URLs per network (`RPC_URL_1`, `RPC_URL_2`, `RPC_URL_3`, …).  
-  **Note:** At least one RPC URL must be provided per network — otherwise, on-chain status checks will fail.  
-  The SDK randomly selects one URL for better reliability and load distribution.
-
--   The  `EXCHANGE_RATE_API_KEY`  is optional — required only if you use the built-in currency conversion helper `convertToUSD()`
+-   The cache automatically refreshes when it expires.    
+-   You can adjust the cache duration by setting  `EXCHANGE_RATE_CACHE_TIME`:
+    -   `5`  → cache for 5 minutes
+    -   `60`  → cache for 1 hour
+    -   `720`  → cache for 12 hours (default)
+- Each network (Polygon, Ethereum, Linea) has its own  **MERCHANT_ID**,  **PRIVATE_KEY**, and  **RPC URLs**.  
+- The SDK automatically detects which chain configuration to use based on the selected network.
+- You can use multiple RPC URLs for redundancy (the SDK will automatically fall back if one fails).
+- Contract addresses correspond to the deployed Payra Core Forward contracts per network.
 
 ## Usage Example
 
