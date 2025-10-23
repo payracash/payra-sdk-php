@@ -39,18 +39,18 @@ class PayraUtils
 
     public static function convertToUSD(float $amount, string $fromCurrency): float
     {
-        $apiKey = $_ENV['EXCHANGE_RATE_API_KEY'] ?? null;
+        $apiKey = $_ENV['PAYRA_EXCHANGE_RATE_API_KEY'] ?? null;
         if (!$apiKey) {
-            throw new \Exception('EXCHANGE_RATE_API_KEY is not set in environment.');
+            throw new \Exception('PAYRA_EXCHANGE_RATE_API_KEY is not set in environment.');
         }
 
         // Cache TTL (in minutes, default: 720)
-        $cacheMinutes = (int)($_ENV['EXCHANGE_RATE_CACHE_TIME'] ?? 720);
+        $cacheMinutes = (int)($_ENV['PAYRA_EXCHANGE_RATE_CACHE_TIME'] ?? 720);
         $cacheTTL = $cacheMinutes * 60; // seconds
 
         // Path to cache file (e.g. /tmp/payra_exchange_rate.json)
         $cacheFile = sys_get_temp_dir() . '/payra_cash_exchange_rate_cache.json';
-        
+
         $apiUrl = "https://v6.exchangerate-api.com/v6/{$apiKey}/latest/USD";
         $fromCurrency = strtoupper($fromCurrency);
         $currentTime = time();

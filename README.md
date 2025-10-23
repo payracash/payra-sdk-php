@@ -1,7 +1,7 @@
 
 # Payra Cash PHP SDK
 
-Official PHP SDK for integrating **Payra's on-chain payment system** into your backend applications.
+Official **PHP SDK** for integrating **Payra's on-chain payment system** into your backend applications.
 
 This SDK provides:
 - Secure generation of **ECDSA signatures** compatible with the Payra smart contract — used for order payment verification.
@@ -11,18 +11,17 @@ This SDK provides:
 
 The typical flow for signing and verifying a Payra transaction:
 
-1. The **frontend** prepares all required payment parameters:
-   - **Network** – blockchain name (e.g. Polygon, Linea)
-   - **Token address** – ERC-20 token contract address
-   - **Order ID** – unique order identifier
-   - **AmountWei** – already converted to the smallest unit (e.g. wei, 10⁶)
-   - **Timestamp** – Unix timestamp of the order
-   - **Payer wallet address**
-
-2. The frontend sends these parameters to your **backend**.
-3. The **backend** uses this SDK to generate a cryptographic **ECDSA signature** with its private key (performed **offline**).
-4. The backend returns the generated signature to the frontend.
-5. The **frontend** calls the Payra smart contract (`payOrder`) with all parameters **plus** the signature.
+1.  The  **frontend**  prepares all required payment parameters:
+    -   **Network**  – blockchain name (e.g. Polygon, Linea)
+    -   **Token address**  – ERC-20 token contract address
+    -   **Order ID**  – unique order identifier
+    -   **Amount Wei**  – already converted to the smallest unit (e.g. wei, 10⁶)
+    -   **Timestamp**  – Unix timestamp of the order
+    -   **Payer wallet address**  – the wallet address from which the user will make the on-chain payment
+2.  The frontend sends these parameters to your  **backend**.
+3.  The  **backend**  uses this SDK to generate a cryptographic  **ECDSA signature**  with its private key (performed  **offline**).
+4.  The backend returns the generated signature to the frontend.
+5.  The  **frontend**  calls the Payra smart contract (`payOrder`) with all parameters  **plus**  the signature.
 
 This process ensures full compatibility between your backend and Payra’s on-chain verification logic.
 
@@ -31,12 +30,13 @@ This process ensures full compatibility between your backend and Payra’s on-ch
 - Generates **Ethereum ECDSA signatures** using the `secp256k1` curve.
 - Fully compatible with **Payra's Solidity smart contracts** (`ERC-1155` payment verification).  
 - Includes built-in **ABI encoding and decoding** via `web3.php`.
-- Supports (`.env`) configuration for multiple blockchain networks.  
+- Supports `.env` and  `config/payra.php` configuration for multiple blockchain networks.  
+- Laravel IoC container integration (easy dependency injection)
 - Verifies **order payment status directly on-chain** via RPC or blockchain explorer API.  
-- Provides **secure backend integration** using merchant private keys.   
+- Provides **secure backend integration** for signing and verifying transactions.
 - Includes optional utility helpers for:
   - **Currency conversion** (via [ExchangeRate API](https://www.exchangerate-api.com/))
-  - **USD ⇄ WEI** conversion for token precision handling.  
+  - **USD ⇄ WEI** conversion for token precision handling.
 
 ## Setup
 
@@ -58,10 +58,11 @@ Optional (recommended):
 ## Installation
 
 ### Requirements
+
 - PHP 8.1 or higher  
 - Composer  
 - cURL extension enabled  
-- (`.env`) file for environment configuration  
+- `.env` file for environment configuration  
 
 #### Via Composer (recommended)
 
@@ -71,7 +72,7 @@ composer require payracash/payra-sdk-php
 
 #### Or manual installation (for local testing)
 
-```
+```bash
 git clone https://github.com/payracash/payra-sdk-php.git
 cd payra-sdk-php
 composer install
@@ -86,12 +87,12 @@ require __DIR__ . '/vendor/autoload.php';
 
 ## Environment Setup
 
-Create a (`.env`) file in your project root and define the following variables:
+Create a `.env` file in your project root and define the following variables:
 
-```env
+```bash
 # Optional — only needed if you want to use the built-in currency conversion helper
-EXCHANGE_RATE_API_KEY=         # Your ExchangeRate API key (from exchangerate-api.com)
-EXCHANGE_RATE_CACHE_TIME=720   # Cache duration in minutes (default: 720 = 12h)
+PAYRA_EXCHANGE_RATE_API_KEY=         # Your ExchangeRate API key (from exchangerate-api.com)
+PAYRA_EXCHANGE_RATE_CACHE_TIME=720   # Cache duration in minutes (default: 720 = 12h)
 
 # Polygon Network Configuration
 PAYRA_POLYGON_CORE_FORWARD_CONTRACT_ADDRESS=0xf30070da76B55E5cB5750517E4DECBD6Cc5ce5a8
@@ -118,7 +119,7 @@ PAYRA_LINEA_RPC_URL_2=
 #### Important Notes
 
 -   The cache automatically refreshes when it expires.    
--   You can adjust the cache duration by setting  `EXCHANGE_RATE_CACHE_TIME`:
+-   You can adjust the cache duration by setting  `PAYRA_EXCHANGE_RATE_CACHE_TIME`:
     -   `5`  → cache for 5 minutes
     -   `60`  → cache for 1 hour
     -   `720`  → cache for 12 hours (default)
@@ -145,20 +146,32 @@ $amountWei = PayraUtils::toWei(3.45, 'polygon', 'usdt'); // in smallest token un
 $generator = new PayraSignatureGenerator();
 
 $signature = $generator->generateSignature(
-    $network,         // e.g. "polygon"
-    $tokenAddress,    // ERC-20 USDT or USDC
-    $orderId,         // string (unique per merchantId)
-    $amountWei,          // in Wei $1 = 1_000_000
+    $network,         	// e.g. "polygon"
+    $tokenAddress,    	// ERC-20 USDT or USDC
+    $orderId,         	// string (unique per merchantId)
+    $amountWei,       	// in Wei $1 = 1_000_000
     (int) $timestamp,
-    $payerAddress     // Public payer wallet address
+    $payerAddress     	// Public payer wallet address
 );
 ```
 
 Use `PayraUtils::toWei($usdAmount, $network, $tokenSymbol)` to easily convert USD to Wei before generating a signature.
 
+#### Input Parameters
+
+| Field         | Type     | Description                                  |
+|--------------|----------|----------------------------------------------|
+| **`network`**    | `string` | Selected network name                        |
+| **`tokenAddress`** | `string` | ERC20 token contract address                 |
+| **`orderId`**     | `string` | Unique order reference (e.g. ORDER-123)      |
+| **`amountWei`**      | `string` or `integer` | Token amount in smallest unit (e.g. wei)     |
+| **`timestamp`**   | `number` | Unix timestamp of signature creation         |
+| **`payerAddress`**   | `string` | Payer Wallet Address     
+
 ---
 
 ### Check Order Status
+
 ```php
 use App\Payra\PayraOrderVerification;
 
@@ -190,6 +203,7 @@ if ($verify['paid']) {
     'error'   => null,   // string|null: error message if the request failed, otherwise null
 ]
 ```
+
 **Note:** Network identifiers should always be lowercase (e.g., `"polygon"`, `"ethereum"`, `"linea"`, `"flare"`).
 
 
@@ -258,21 +272,20 @@ $amountUSD = PayraUtils::convertToUSD(120.43, 'EUR'); // converted amount in USD
 To use the conversion helper, you need a free API key from  **[exchangerate-api.com](https://exchangerate-api.com/)**.
 
 1.  Register a free account and get your API key.
-2.  Add the key to your  (`.env`)  file:
+2.  Add the key to your  `.env`  file:
 
 ```php
-EXCHANGE_RATE_API_KEY=your_api_key_here
+PAYRA_EXCHANGE_RATE_API_KEY=your_api_key_here
 ```
 
-3.  That’s it — Payra will automatically fetch the exchange rate and calculate the USD amount.
+4.  That’s it — Payra will automatically fetch the exchange rate and calculate the USD amount.
 
 **Note:** The free plan allows 1,500 requests per month, which is sufficient for most stores. Exchange rates on this plan are updated every 24 hours, so with caching, it’s more than enough. Paid plans offer faster update intervals.
-
 
 ## Security Notice
 
 Never expose your private key in frontend or client-side code.  
-This SDK is  **server-side only**  and must be used securely on your backend. Never use it in frontend or browser environments. Also, never commit your  (`.env`)  file to version control.
+This SDK is  **server-side only**  and must be used securely on your backend. Never use it in frontend or browser environments. Also, never commit your `.env`  file to version control.
 
 ## Project
 

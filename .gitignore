@@ -1,4 +1,3 @@
-```gitignore
 # PHP specific
 /vendor/
 .env
