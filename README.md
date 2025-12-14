@@ -1,4 +1,3 @@
-
 # Payra Cash PHP SDK
 
 Official **PHP SDK** for integrating **Payra's on-chain payment system** into your backend applications.
@@ -11,17 +10,17 @@ This SDK provides:
 
 The typical flow for signing and verifying a Payra transaction:
 
-1.  The  **frontend**  prepares all required payment parameters:
+1.  The **frontend** prepares all required payment parameters:
     -   **Network**  – blockchain name (e.g. Polygon, Linea)
     -   **Token address**  – ERC-20 token contract address
     -   **Order ID**  – unique order identifier
     -   **Amount Wei**  – already converted to the smallest unit (e.g. wei, 10⁶)
     -   **Timestamp**  – Unix timestamp of the order
     -   **Payer wallet address**  – the wallet address from which the user will make the on-chain payment
-2.  The frontend sends these parameters to your  **backend**.
-3.  The  **backend**  uses this SDK to generate a cryptographic  **ECDSA signature**  with its private key (performed  **offline**).
+2.  The frontend sends these parameters to your **backend**.
+3.  The **backend** uses this SDK to generate a cryptographic **ECDSA signature** with its private key (performed  **offline**).
 4.  The backend returns the generated signature to the frontend.
-5.  The  **frontend**  calls the Payra smart contract (`payOrder`) with all parameters  **plus**  the signature.
+5.  The **frontend** calls the Payra smart contract (`payOrder`) with all parameters  **plus** the signature.
 
 This process ensures full compatibility between your backend and Payra’s on-chain verification logic.
 
@@ -40,9 +39,9 @@ This process ensures full compatibility between your backend and Payra’s on-ch
 
 ## Setup
 
-Before installing this package, make sure you have an active **Payra** account:
+Before installing this package, make sure you have a **MerchantID**
 
-- [https://payra.cash](https://payra.cash)
+- [https://payra.cash/products/on-chain-payments/merchant-registration](https://payra.cash/products/on-chain-payments/merchant-registration)
 
 You will need:
 - Your **Merchant ID** (unique for each blockchain network)
@@ -170,7 +169,61 @@ Use `PayraUtils::toWei($usdAmount, $network, $tokenSymbol)` to easily convert US
 
 ---
 
-### Check Order Status
+### Get Order Status
+
+Retrieve  **full payment details**  for a specific order from the Payra smart contract. This method returns the complete on-chain payment data associated with the order, including:
+
+-   whether the order has been paid,
+-   the payment token address,
+-   the paid amount,
+-   the fee amount,
+-   and the payment timestamp.
+
+Use this method when you need  **detailed information**  about the payment or want to display full transaction data.
+
+```php
+use App\Payra\PayraOrderVerification;
+
+// Load environment
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+$orderVerification = new PayraOrderVerification();
+
+// Call order verification (returns array)
+$orderStatus = $orderVerification->getOrderStatus(
+    $network,   // e.g. "polygon"
+    $orderId    // string (unique per merchantId)
+);
+
+if ($orderStatus['paid']) {
+    echo "Order is paid";
+} else {
+    echo "Order not yet paid.";
+}
+```
+
+### Example response structure
+
+```php
+[
+    'success'   => true,   // boolean: whether the RPC request succeeded
+    'error'     => null,   // string|null: error message if the request failed
+    'paid'      => true,   // boolean: whether the order is marked as paid on-chain
+    'token'     => '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // payment token (USDT, USDC, etc.)
+    'amount'    => 400000, // amount in wei
+    'fee'       => 3600,   // fee in wei
+    'timestamp' => 1765138941 // UNIX timestamp
+]
+
+```
+
+---
+### Check Order Paid Status
+
+Perform a  **simple payment check**  for a specific order. This method only verifies whether the order has been paid (`true`  or  `false`) and does  **not**  return any additional payment details.
+
+Use this method when you only need a  **quick boolean confirmation**  of the payment status.
 
 ```php
 use App\Payra\PayraOrderVerification;
@@ -292,15 +345,15 @@ This SDK is  **server-side only**  and must be used securely on your backend. Ne
 -   [https://payra.cash](https://payra.cash)
 -   [https://payra.tech](https://payra.tech)
 -   [https://payra.xyz](https://payra.xyz)
--   [https://payra.eth](https://payra.eth)
+-   [https://payra.eth](https://payra.eth.limo) - suporrted by Brave Browser or .limo
 
 ## Social Media
 
 - [Telegram Payra Group](https://t.me/+GhTyJJrd4SMyMDA0)
 - [Telegram Announcements](https://t.me/payracash)
 - [Twix (X)](https://x.com/PayraCash)
-- [Hashnode](https://payra.hashnode.dev)
+- [Dev.to](https://dev.to/payracash)
 
 ##  License
 
-MIT © [Payra](https://github.com/payracash)
+MIT © [Payra](https://payra.cash)

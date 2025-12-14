@@ -9,6 +9,147 @@ use Web3\Providers\HttpProvider;
 
 class PayraOrderVerification
 {
+
+    /**
+     * Get detailed status of an order from Payra smart contract.
+     *
+     * This method queries the Payra Core contract (via Forward contract)
+     * and retrieves full payment information for a given order.
+     *
+     * Returned data includes:
+     *  - whether the order is paid
+     *  - payment token address
+     *  - paid amount
+     *  - fee amount
+     *  - payment timestamp
+     *
+     * @param string $network Network name (e.g. "ETH", "BSC", "POLYGON")
+     * @param string $orderId Unique order identifier (e.g. "shop-1-0937266")
+     *
+     * @return array {
+     *   @type bool|null   $paid
+     *   @type string|null $token
+     *   @type int|null    $amount
+     *   @type int|null    $fee
+     *   @type int|null    $timestamp
+     *   @type bool        $success
+     *   @type string|null $error
+     * }
+     */
+    public function getOrderStatus(string $network, string $orderId): array
+    {
+        $network = strtoupper($network);
+        $rpcUrl = $this->getRpcUrl($network);
+
+        $merchantId = $_ENV["PAYRA_{$network}_MERCHANT_ID"] ?? null;
+        $forwardAddress = $_ENV["PAYRA_{$network}_CORE_FORWARD_CONTRACT_ADDRESS"] ?? null;
+
+        if (!$merchantId || !$forwardAddress) {
+           throw new \RuntimeException("Missing merchant ID or forward contract address");
+        }
+
+        $provider = new HttpProvider($rpcUrl, 5);
+        $web3 = new Web3($provider);
+        $ethabi = new Ethabi;
+
+        // Load ABI
+        $abiArray = json_decode(
+           file_get_contents(dirname(__DIR__) . '/Contracts/payraABI.json'),
+           true
+        );
+
+        // Find getOrderStatus()
+        $coreFn = $this->findFunction($abiArray, 'getOrderStatus');
+        $forwardFn = $this->findFunction($abiArray, 'forward');
+
+        // Build function selector
+        $signature = $coreFn['name'] . '(' . implode(',', array_column($coreFn['inputs'], 'type')) . ')';
+        $selector = substr(Utils::sha3($signature), 0, 10);
+
+        // Encode params
+        $encodedParams = $ethabi->encodeParameters(
+           array_column($coreFn['inputs'], 'type'),
+           [$merchantId, $orderId]
+        );
+
+        // Data for forward()
+        $data = $selector . substr($encodedParams, 2);
+
+        // Forward contract
+        $forwarder = new Contract($web3->provider, [$forwardFn]);
+        $instance = $forwarder->at($forwardAddress);
+
+        try {
+             $resultValue = null;
+             $done = false;
+
+             $instance->call('forward', $data, function ($err, $result) use ($ethabi, &$resultValue, &$done) {
+                 if ($err) {
+                     throw new \RuntimeException("RPC call failed: " . $err->getMessage());
+                 }
+
+                 // ABI output: tuple(bool,address,uint256,uint256,uint256)
+                 $outputTypes = [
+                     'bool',
+                     'address',
+                     'uint256',
+                     'uint256',
+                     'uint256'
+                 ];
+
+                 $decoded = $ethabi->decodeParameters($outputTypes, $result[0]);
+
+                 $resultValue = [
+                     'paid'      => (bool)$decoded[0],
+                     'token'     => $decoded[1],
+                     'amount'    => (int)$decoded[2]->toString(),
+                     'fee'       => (int)$decoded[3]->toString(),
+                     'timestamp' => (int)$decoded[4]->toString(),
+                 ];
+
+                 $done = true;
+             });
+
+             // Timeout protection
+             $start = microtime(true);
+             $timeout = 5;
+
+             while (!$done && (microtime(true) - $start) < $timeout) {
+                 usleep(1000);
+             }
+
+             if (!$done) {
+                 return [
+                     'success' => false,
+                     'error'   => 'Timeout waiting for forward() response',
+                     'paid'    => null,
+                     'token'   => null,
+                     'amount'  => null,
+                     'fee'     => null,
+                     'timestamp' => null,
+                 ];
+             }
+
+             return array_merge(
+                 ['success' => true, 'error' => null],
+                 $resultValue
+             );
+
+         } catch (\Throwable $e) {
+             error_log("getOrderStatus failed: " . $e->getMessage());
+
+             return [
+                 'success'   => false,
+                 'error'     => $e->getMessage(),
+                 'paid'      => null,
+                 'token'     => null,
+                 'amount'    => null,
+                 'fee'       => null,
+                 'timestamp' => null,
+             ];
+         }
+     }
+
     /**
      * Verify the authenticity of an order signature.
      *
