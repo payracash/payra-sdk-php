@@ -171,7 +171,7 @@ Use `PayraUtils::toWei($usdAmount, $network, $tokenSymbol)` to easily convert US
 
 ### Get Order Status
 
-Retrieve  **full payment details**  for a specific order from the Payra smart contract. This method returns the complete on-chain payment data associated with the order, including:
+Retrieve **full payment details** for a specific order from the Payra smart contract. This method returns the complete on-chain payment data associated with the order, including:
 
 -   whether the order has been paid,
 -   the payment token address,
@@ -207,13 +207,13 @@ if ($orderStatus['paid']) {
 
 ```php
 [
-    'success'   => true,   // boolean: whether the RPC request succeeded
-    'error'     => null,   // string|null: error message if the request failed
-    'paid'      => true,   // boolean: whether the order is marked as paid on-chain
-    'token'     => '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // payment token (USDT, USDC, etc.)
-    'amount'    => 400000, // amount in wei
-    'fee'       => 3600,   // fee in wei
-    'timestamp' => 1765138941 // UNIX timestamp
+    "success"   => true,   // boolean: whether the RPC request succeeded
+    "error"     => null,   // string|null: error message if the request failed
+    "paid"      => true,   // boolean: whether the order is marked as paid on-chain
+    "token"     => '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // payment token (USDT, USDC, etc.)
+    "amount"    => 400000, // amount in wei
+    "fee"       => 3600,   // fee in wei
+    "timestamp" => 1765138941 // UNIX timestamp
 ]
 
 ```
@@ -251,9 +251,9 @@ if ($verify['paid']) {
 
 ```php
 [
-    'success' => true,   // boolean: whether the RPC request succeeded
-    'paid'    => true,   // boolean: whether the order is marked as paid on-chain
-    'error'   => null,   // string|null: error message if the request failed, otherwise null
+    "success" => true,   // boolean: whether the RPC request succeeded
+    "paid"    => true,   // boolean: whether the order is marked as paid on-chain
+    "error"   => null,   // string|null: error message if the request failed, otherwise null
 ]
 ```
 

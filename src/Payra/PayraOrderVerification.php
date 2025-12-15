@@ -9,7 +9,6 @@ use Web3\Providers\HttpProvider;
 
 class PayraOrderVerification
 {
-
     /**
      * Get detailed status of an order from Payra smart contract.
      *
@@ -23,7 +22,7 @@ class PayraOrderVerification
      *  - fee amount
      *  - payment timestamp
      *
-     * @param string $network Network name (e.g. "ETH", "BSC", "POLYGON")
+     * @param string $network Network name (e.g. "linea", "ethereum", "polygon")
      * @param string $orderId Unique order identifier (e.g. "shop-1-0937266")
      *
      * @return array {
@@ -38,46 +37,19 @@ class PayraOrderVerification
      */
     public function getOrderStatus(string $network, string $orderId): array
     {
-        $network = strtoupper($network);
-        $rpcUrl = $this->getRpcUrl($network);
-
-        $merchantId = $_ENV["PAYRA_{$network}_MERCHANT_ID"] ?? null;
-        $forwardAddress = $_ENV["PAYRA_{$network}_CORE_FORWARD_CONTRACT_ADDRESS"] ?? null;
-
-        if (!$merchantId || !$forwardAddress) {
-           throw new \RuntimeException("Missing merchant ID or forward contract address");
-        }
-
-        $provider = new HttpProvider($rpcUrl, 5);
-        $web3 = new Web3($provider);
-        $ethabi = new Ethabi;
-
-        // Load ABI
-        $abiArray = json_decode(
-           file_get_contents(dirname(__DIR__) . '/Contracts/payraABI.json'),
-           true
+        [
+            'instance' => $instance,
+            'ethabi'   => $ethabi,
+            'coreFn'   => $coreFn,
+            'data'     => $data,
+        ] = $this->prepareForwardCall(
+            $network,
+            'getOrderStatus',
+            [
+                $_ENV["PAYRA_" . strtoupper($network) . "_MERCHANT_ID"],
+                $orderId
+            ]
         );
-
-        // Find getOrderStatus()
-        $coreFn = $this->findFunction($abiArray, 'getOrderStatus');
-        $forwardFn = $this->findFunction($abiArray, 'forward');
-
-        // Build function selector
-        $signature = $coreFn['name'] . '(' . implode(',', array_column($coreFn['inputs'], 'type')) . ')';
-        $selector = substr(Utils::sha3($signature), 0, 10);
-
-        // Encode params
-        $encodedParams = $ethabi->encodeParameters(
-           array_column($coreFn['inputs'], 'type'),
-           [$merchantId, $orderId]
-        );
-
-        // Data for forward()
-        $data = $selector . substr($encodedParams, 2);
-
-        // Forward contract
-        $forwarder = new Contract($web3->provider, [$forwardFn]);
-        $instance = $forwarder->at($forwardAddress);
 
         try {
              $resultValue = null;
@@ -121,8 +93,8 @@ class PayraOrderVerification
              if (!$done) {
                  return [
                      'success' => false,
-                     'error'   => 'Timeout waiting for forward() response',
                      'paid'    => null,
+                     'error'   => 'Timeout waiting for forward() response',
                      'token'   => null,
                      'amount'  => null,
                      'fee'     => null,
@@ -140,8 +112,8 @@ class PayraOrderVerification
 
              return [
                  'success'   => false,
-                 'error'     => $e->getMessage(),
                  'paid'      => null,
+                 'error'     => $e->getMessage(),
                  'token'     => null,
                  'amount'    => null,
                  'fee'       => null,
@@ -164,31 +136,19 @@ class PayraOrderVerification
      */
     public function isOrderPaid(string $network, string $orderId): array
     {
-        $network = strtoupper($network);
-        $rpcUrl = $this->getRpcUrl($network);
-
-        $merchantId = $_ENV["PAYRA_{$network}_MERCHANT_ID"] ?? null;
-        $forwardAddress = $_ENV["PAYRA_{$network}_CORE_FORWARD_CONTRACT_ADDRESS"] ?? null;
-
-        $provider = new HttpProvider($rpcUrl, 5);
-        $web3 = new Web3($provider);
-        $ethabi = new Ethabi;
-
-        // Load ABI
-        $abiArray = json_decode(file_get_contents(dirname(__DIR__) . '/Contracts/payraABI.json'), true);
-
-        // Get functions
-        $coreFn = $this->findFunction($abiArray, 'isOrderPaid');
-        $forwardFn = $this->findFunction($abiArray, 'forward');
-
-        // Encode isOrderPaid call
-        $selector = substr(Utils::sha3($coreFn['name'].'('.implode(',', array_column($coreFn['inputs'], 'type')).')'), 0, 10);
-        $encodedParams = $ethabi->encodeParameters(array_column($coreFn['inputs'], 'type'), [$merchantId, $orderId]);
-        $data = $selector . substr($encodedParams, 2);
-
-        // Forward contract
-        $forwarder = new Contract($web3->provider, [$forwardFn]);
-        $instance = $forwarder->at($forwardAddress);
+        [
+            'instance' => $instance,
+            'ethabi'   => $ethabi,
+            'coreFn'   => $coreFn,
+            'data'     => $data,
+        ] = $this->prepareForwardCall(
+            $network,
+            'isOrderPaid',
+            [
+                $_ENV["PAYRA_" . strtoupper($network) . "_MERCHANT_ID"],
+                $orderId
+            ]
+        );
 
         // Call forward()
         try {
@@ -286,6 +246,63 @@ class PayraOrderVerification
             }
         }
         throw new \Exception("Function {$name} not found in ABI!");
+    }
+
+    /**
+     * Prepare Forward Call
+     */
+    private function prepareForwardCall(
+        string $network,
+        string $coreFunctionName,
+        array $params
+    ): array {
+        $network = strtoupper($network);
+        $rpcUrl = $this->getRpcUrl($network);
+
+        $merchantId = $_ENV["PAYRA_{$network}_MERCHANT_ID"] ?? null;
+        $forwardAddress = $_ENV["PAYRA_{$network}_CORE_FORWARD_CONTRACT_ADDRESS"] ?? null;
+
+        if (!$merchantId || !$forwardAddress) {
+            throw new \RuntimeException("Missing merchant ID or forward contract address");
+        }
+
+        $provider = new HttpProvider($rpcUrl, 5);
+        $web3 = new Web3($provider);
+        $ethabi = new Ethabi;
+
+        // Load ABI
+        $abiArray = json_decode(
+            file_get_contents(dirname(__DIR__) . '/contracts/payraABI.json'),
+            true
+        );
+
+        // Find functions
+        $coreFn = $this->findFunction($abiArray, $coreFunctionName);
+        $forwardFn = $this->findFunction($abiArray, 'forward');
+
+        // Build selector
+        $signature = $coreFn['name'] . '(' . implode(',', array_column($coreFn['inputs'], 'type')) . ')';
+        $selector = substr(Utils::sha3($signature), 0, 10);
+
+        // Encode params
+        $encodedParams = $ethabi->encodeParameters(
+            array_column($coreFn['inputs'], 'type'),
+            $params
+        );
+
+        // Calldata
+        $data = $selector . substr($encodedParams, 2);
+
+        // Forward contract
+        $forwarder = new Contract($web3->provider, [$forwardFn]);
+        $instance = $forwarder->at($forwardAddress);
+
+        return [
+            'instance' => $instance,
+            'ethabi'   => $ethabi,
+            'coreFn'   => $coreFn,
+            'data'     => $data,
+        ];
     }
 
 }
