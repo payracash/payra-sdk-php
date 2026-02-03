@@ -72,7 +72,7 @@ try {
         $data['network'],
         $data['tokenAddress'],
         $data['orderId'],
-        $data['amountWei'], // inWei
+        $data['amountWei'], // in Wei
         (int) $data['timestamp'], // cast timestamp to int,
         $data['payerAddress']
     );

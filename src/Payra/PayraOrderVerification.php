@@ -26,101 +26,58 @@ class PayraOrderVerification
      * @param string $orderId Unique order identifier (e.g. "shop-1-0937266")
      *
      * @return array {
+     *   @type bool        $success
+     *   @type string|null $error
      *   @type bool|null   $paid
      *   @type string|null $token
      *   @type int|null    $amount
      *   @type int|null    $fee
      *   @type int|null    $timestamp
-     *   @type bool        $success
-     *   @type string|null $error
      * }
      */
     public function getOrderStatus(string $network, string $orderId): array
     {
-        [
-            'instance' => $instance,
-            'ethabi'   => $ethabi,
-            'coreFn'   => $coreFn,
-            'data'     => $data,
-        ] = $this->prepareForwardCall(
-            $network,
-            'getOrderStatus',
-            [
-                $_ENV["PAYRA_" . strtoupper($network) . "_MERCHANT_ID"],
-                $orderId
-            ]
-        );
-
         try {
-             $resultValue = null;
-             $done = false;
+            $setup = $this->getPayraContracts($network);
+            $contract = $setup['userDataContract'];
+            
+            $orderData = null;
+            $done = false;
 
-             $instance->call('forward', $data, function ($err, $result) use ($ethabi, &$resultValue, &$done) {
-                 if ($err) {
-                     throw new \RuntimeException("RPC call failed: " . $err->getMessage());
-                 }
+            $contract->at($setup['userDataAddr'])->call('getOrderDetails', $setup['merchantId'], $orderId, function ($err, $result) use (&$orderData, &$done) {
+                if ($err) throw $err;
+                
+                $orderData = [
+                    'paid'      => $result['paid'] ?? $result[0],
+                    'token'     => $result['token'] ?? $result[1],
+                    'amount'    => $result['amount'] ?? $result[2],
+                    'fee'       => $result['fee'] ?? $result[3],
+                    'timestamp' => $result['timestamp'] ?? $result[4],
+                ];
 
-                 // ABI output: tuple(bool,address,uint256,uint256,uint256)
-                 $outputTypes = [
-                     'bool',
-                     'address',
-                     'uint256',
-                     'uint256',
-                     'uint256'
-                 ];
+                $done = true;
+            });
 
-                 $decoded = $ethabi->decodeParameters($outputTypes, $result[0]);
+            $this->waitForCallback($done);
 
-                 $resultValue = [
-                     'paid'      => (bool)$decoded[0],
-                     'token'     => $decoded[1],
-                     'amount'    => (int)$decoded[2]->toString(),
-                     'fee'       => (int)$decoded[3]->toString(),
-                     'timestamp' => (int)$decoded[4]->toString(),
-                 ];
+            return [
+                'success'   => true,
+                'error'     => null,
+                'paid'      => (bool)$orderData['paid'],
+                'token'     => $orderData['token'],
+                'amount'    => $orderData['amount']->toString(),
+                'fee'       => $orderData['fee']->toString(),
+                'timestamp' => (int)$orderData['timestamp']->toString(),
+            ];
 
-                 $done = true;
-             });
-
-             // Timeout protection
-             $start = microtime(true);
-             $timeout = 5;
-
-             while (!$done && (microtime(true) - $start) < $timeout) {
-                 usleep(1000);
-             }
-
-             if (!$done) {
-                 return [
-                     'success' => false,
-                     'paid'    => null,
-                     'error'   => 'Timeout waiting for forward() response',
-                     'token'   => null,
-                     'amount'  => null,
-                     'fee'     => null,
-                     'timestamp' => null,
-                 ];
-             }
-
-             return array_merge(
-                 ['success' => true, 'error' => null],
-                 $resultValue
-             );
-
-         } catch (\Throwable $e) {
-             error_log("getOrderStatus failed: " . $e->getMessage());
-
-             return [
-                 'success'   => false,
-                 'paid'      => null,
-                 'error'     => $e->getMessage(),
-                 'token'     => null,
-                 'amount'    => null,
-                 'fee'       => null,
-                 'timestamp' => null,
-             ];
-         }
-     }
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'error'   => $e->getMessage(),
+                'paid' => null, 'token' => null, 'amount' => null, 'fee' => null, 'timestamp' => null,
+            ];
+        }
+    }
 
     /**
      * Verify the authenticity of an order signature.
@@ -136,67 +93,32 @@ class PayraOrderVerification
      */
     public function isOrderPaid(string $network, string $orderId): array
     {
-        [
-            'instance' => $instance,
-            'ethabi'   => $ethabi,
-            'coreFn'   => $coreFn,
-            'data'     => $data,
-        ] = $this->prepareForwardCall(
-            $network,
-            'isOrderPaid',
-            [
-                $_ENV["PAYRA_" . strtoupper($network) . "_MERCHANT_ID"],
-                $orderId
-            ]
-        );
-
-        // Call forward()
         try {
-            $resultValue = null;
+            $setup = $this->getPayraContracts($network);
+            $contract = $setup['userDataContract'];
+            
+            $isPaid = false;
             $done = false;
 
-            $instance->call('forward', $data, function ($err, $result) use ($ethabi, $coreFn, &$resultValue, &$done) {
-                if ($err) {
-                    throw new \RuntimeException("RPC call failed: " . $err->getMessage());
-                }
-
-                try {
-                    $decoded = $ethabi->decodeParameters(array_column($coreFn['outputs'], 'type'), $result[0]);
-                    $resultValue = (bool)$decoded[0];
-                } catch (\Throwable $e) {
-                    throw new \RuntimeException("Decoding failed: " . $e->getMessage(), 0, $e);
-                }
-
+            $contract->at($setup['userDataAddr'])->call('isOrderPaid', $setup['merchantId'], $orderId, function ($err, $result) use (&$isPaid, &$done) {
+                if ($err) throw $err;
+                $isPaid = (bool)$result[0];
                 $done = true;
             });
 
-            $start = microtime(true);
-            $timeout = 5;
-
-            while (!$done && (microtime(true) - $start) < $timeout) {
-                usleep(1000);
-            }
-
-            if (!$done) {
-                return [
-                    'success' => false,
-                    'paid'    => null,
-                    'error'   => 'Timeout waiting for forward() response',
-                ];
-            }
+            $this->waitForCallback($done);
 
             return [
                 'success' => true,
-                'paid'    => $resultValue,
                 'error'   => null,
+                'paid'    => $isPaid,
             ];
 
         } catch (\Throwable $e) {
-            error_log("Forward() failed: " . $e->getMessage());
             return [
                 'success' => false,
-                'paid'    => null,
                 'error'   => $e->getMessage(),
+                'paid'    => null,
             ];
         }
     }
@@ -236,73 +158,59 @@ class PayraOrderVerification
     }
 
     /**
-     * Find function in ABI by name
+     * Internal helper to initialize Payra contracts and provider.
      */
-    private function findFunction(array $abi, string $name): array
-    {
-        foreach ($abi as $entry) {
-            if (($entry['type'] ?? null) === 'function' && ($entry['name'] ?? null) === $name) {
-                return $entry;
-            }
-        }
-        throw new \Exception("Function {$name} not found in ABI!");
-    }
-
-    /**
-     * Prepare Forward Call
-     */
-    private function prepareForwardCall(
-        string $network,
-        string $coreFunctionName,
-        array $params
-    ): array {
+    private function getPayraContracts(string $network): array 
+    {  
         $network = strtoupper($network);
         $rpcUrl = $this->getRpcUrl($network);
 
         $merchantId = $_ENV["PAYRA_{$network}_MERCHANT_ID"] ?? null;
-        $forwardAddress = $_ENV["PAYRA_{$network}_CORE_FORWARD_CONTRACT_ADDRESS"] ?? null;
-
-        if (!$merchantId || !$forwardAddress) {
+        $gatewayAddr = $_ENV["PAYRA_{$network}_OCP_GATEWAY_CONTRACT_ADDRESS"] ?? null;
+    
+        if (!$merchantId || !$gatewayAddr) {
             throw new \RuntimeException("Missing merchant ID or forward contract address");
         }
 
-        $provider = new HttpProvider($rpcUrl, 5);
-        $web3 = new Web3($provider);
-        $ethabi = new Ethabi;
+        $web3 = new Web3(new HttpProvider($rpcUrl, 5));
+        $ethabi = new Ethabi();
+        $payraABI = json_decode(file_get_contents(dirname(__DIR__) . '/contracts/payraABI.json'), true);
+ 
+        $gatewayContract = new Contract($web3->provider, $payraABI);
+     
+        $userDataAddr = null;
+        $done = false;
+        
+        $gatewayContract->at($gatewayAddr)->call('getRegistryDetails', function ($err, $result) use (&$userDataAddr, &$done) {
+            if (!$err) {
+                $userDataAddr = $result['userData'] ?? $result[2] ?? null;
+            }
+            $done = true;
+        });
 
-        // Load ABI
-        $abiArray = json_decode(
-            file_get_contents(dirname(__DIR__) . '/contracts/payraABI.json'),
-            true
-        );
+        $this->waitForCallback($done);
 
-        // Find functions
-        $coreFn = $this->findFunction($abiArray, $coreFunctionName);
-        $forwardFn = $this->findFunction($abiArray, 'forward');
-
-        // Build selector
-        $signature = $coreFn['name'] . '(' . implode(',', array_column($coreFn['inputs'], 'type')) . ')';
-        $selector = substr(Utils::sha3($signature), 0, 10);
-
-        // Encode params
-        $encodedParams = $ethabi->encodeParameters(
-            array_column($coreFn['inputs'], 'type'),
-            $params
-        );
-
-        // Calldata
-        $data = $selector . substr($encodedParams, 2);
-
-        // Forward contract
-        $forwarder = new Contract($web3->provider, [$forwardFn]);
-        $instance = $forwarder->at($forwardAddress);
+        if (!$userDataAddr) {
+            throw new \RuntimeException("Could not retrieve userDataAddress from Gateway");
+        }
 
         return [
-            'instance' => $instance,
-            'ethabi'   => $ethabi,
-            'coreFn'   => $coreFn,
-            'data'     => $data,
+            'userDataContract' => new Contract($web3->provider, $payraABI),
+            'userDataAddr'     => $userDataAddr,
+            'merchantId'       => $merchantId,
+            'ethabi'           => $ethabi
         ];
+    }
+
+    /**
+     * Helper for await in PHP
+     */
+    private function waitForCallback(&$done, $timeout = 5) {
+        $start = microtime(true);
+        while (!$done && (microtime(true) - $start) < $timeout) {
+            usleep(10000);
+        }
+        if (!$done) throw new \RuntimeException("RPC Timeout");
     }
 
 }

@@ -3,12 +3,12 @@
 		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "_merchantId",
+				"name": "_mid",
 				"type": "uint256"
 			},
 			{
 				"internalType": "string",
-				"name": "_orderId",
+				"name": "_oid",
 				"type": "string"
 			}
 		],
@@ -23,71 +23,53 @@
 		"stateMutability": "view",
 		"type": "function"
 	},
-	{
-		"inputs": [
-			{
-				"internalType": "bytes",
-				"name": "data",
-				"type": "bytes"
-			}
-		],
-		"name": "forward",
-		"outputs": [
-			{
-				"internalType": "bytes",
-				"name": "",
-				"type": "bytes"
-			}
-		],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
+ 	{
 		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "_merchantId",
+				"name": "_mid",
 				"type": "uint256"
 			},
 			{
 				"internalType": "string",
-				"name": "_orderId",
+				"name": "_oid",
 				"type": "string"
 			}
 		],
-		"name": "getOrderStatus",
+		"name": "getOrderDetails",
+		"outputs": [
+			{ "name": "paid", "type": "bool" },
+			{ "name": "token", "type": "address" },
+			{ "name": "amount", "type": "uint256" },
+			{ "name": "fee", "type": "uint256" },
+			{ "name": "timestamp", "type": "uint256" }
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+  	{
+		"inputs": [],
+		"name": "getRegistryDetails",
 		"outputs": [
 			{
-				"components": [
-					{
-						"internalType": "bool",
-						"name": "paid",
-						"type": "bool"
-					},
-					{
-						"internalType": "address",
-						"name": "token",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "fee",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "timestamp",
-						"type": "uint256"
-					}
-				],
-				"internalType": "struct PayraData.PaymentData",
-				"name": "",
-				"type": "tuple"
+				"internalType": "address",
+				"name": "core",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "product",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "userData",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "register",
+				"type": "address"
 			}
 		],
 		"stateMutability": "view",

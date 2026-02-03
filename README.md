@@ -1,4 +1,4 @@
-# Payra Cash PHP SDK
+# Payra  PHP SDK
 
 Official **PHP SDK** for integrating **Payra's on-chain payment system** into your backend applications.
 
@@ -6,21 +6,22 @@ This SDK provides:
 - Secure generation of **ECDSA signatures** compatible with the Payra smart contract — used for order payment verification.
 - Simple methods for **checking the on-chain status of orders** to confirm completed payments.
 
+
 ## How It Works
 
-The typical flow for signing and verifying a Payra transaction:
 
-1.  The **frontend** prepares all required payment parameters:
-    -   **Network**  – blockchain name (e.g. Polygon, Linea)
-    -   **Token address**  – ERC-20 token contract address
-    -   **Order ID**  – unique order identifier
-    -   **Amount Wei**  – already converted to the smallest unit (e.g. wei, 10⁶)
-    -   **Timestamp**  – Unix timestamp of the order
-    -   **Payer wallet address**  – the wallet address from which the user will make the on-chain payment
-2.  The frontend sends these parameters to your **backend**.
-3.  The **backend** uses this SDK to generate a cryptographic **ECDSA signature** with its private key (performed  **offline**).
-4.  The backend returns the generated signature to the frontend.
-5.  The **frontend** calls the Payra smart contract (`payOrder`) with all parameters  **plus** the signature.
+The typical flow for signing and verifying a Payra transaction:
+1. The **frontend** prepares all required payment parameters:
+	-  **Network** – blockchain name (e.g. Polygon, Linea)
+	-  **Token address** – ERC-20 token contract address
+	-  **Order ID** – unique order identifier
+	-  **Amount WEI** – already converted to the smallest unit (e.g. wei, 10⁶)
+	-  **Timestamp** – Unix timestamp of the order
+	-  **Payer wallet address** – the wallet address from which the user will make the on-chain payment
+2. The frontend sends these parameters to your **backend**.
+3. The **backend** uses this SDK to generate a cryptographic **ECDSA signature** with its signature key (performed **offline**).
+4. The backend returns the generated signature to the frontend.
+5. The **frontend** calls the Payra smart contract (`payOrder`) with all parameters **plus** the signature.
 
 This process ensures full compatibility between your backend and Payra’s on-chain verification logic.
 
@@ -39,20 +40,30 @@ This process ensures full compatibility between your backend and Payra’s on-ch
 
 ## Setup
 
+Before installing this package, make sure you have an active **Payra** account:
+
+[https://payra.cash/products/on-chain-payments/registration](https://payra.cash/products/on-chain-payments/registration#registration-form)
+
 Before installing this package, make sure you have a **MerchantID**
 
-- [https://payra.cash/products/on-chain-payments/merchant-registration](https://payra.cash/products/on-chain-payments/merchant-registration)
-
-You will need:
 - Your **Merchant ID** (unique for each blockchain network)
-- Your **private key** (used to sign Payra transactions securely)
+- Your **Signature Key** (used to sign Payra transactions securely)
+
 
 Additionally:
-- Create a free account at [QuickNode](https://www.quicknode.com/) to obtain your **RPC URLs** — these are required for reading on-chain order status directly from the blockchain.
+To obtain your **RPC URLs** which are required for reading on-chain order statuses directly from the blockchain, you can use the public free endpoints provided with this package or create an account on one of the following services for better performance and reliability:
+
+-   **QuickNode** – Extremely fast and excellent for Polygon/Mainnet. ([quicknode.com](https://quicknode.com/))
+    
+-   **Alchemy** – Offers a great developer dashboard and high reliability. ([alchemy.com](https://alchemy.com/))
+    
+-   **DRPC** – Decentralized RPC with a generous free tier and a strict no-log policy. ([drpc.org](https://drpc.org))
+    
+-   **Infura** – The industry standard; very stable, especially for Ethereum. ([infura.io](https://infura.io))
 
 Optional (recommended):
-- Create a free API key at [ExchangeRate API](https://www.exchangerate-api.com/)  
-  if you want to enable **automatic fiat → USD** conversions using the built-in utilities.
+- Create a free API key at [ExchangeRate API](https://www.exchangerate-api.com/) to enable **automatic fiat → USD conversions** using the built-in utility helpers.
+
 
 ## Installation
 
@@ -84,9 +95,21 @@ Once installed, make sure to include Composer’s autoloader in your project:
 require __DIR__ . '/vendor/autoload.php';
 ```
 
-## Environment Setup
+## Environment Configuration
 
-Create a `.env` file in your project root and define the following variables:
+Create a `.env` file in your project root (you can copy from example):
+
+```bash
+cp  .env.example  .env
+```
+
+This file stores your **private configuration** and connection settings for all supported networks. Never commit `.env` to version control.
+
+### Required Variables
+
+#### Exchange Rate (optional)
+
+Used for automatic fiat → USD conversions via the built-in Payra utilities.
 
 ```bash
 # Optional — only needed if you want to use the built-in currency conversion helper
@@ -94,22 +117,22 @@ PAYRA_EXCHANGE_RATE_API_KEY=         # Your ExchangeRate API key (from exchanger
 PAYRA_EXCHANGE_RATE_CACHE_TIME=720   # Cache duration in minutes (default: 720 = 12h)
 
 # Polygon Network Configuration
-PAYRA_POLYGON_CORE_FORWARD_CONTRACT_ADDRESS=0xf30070da76B55E5cB5750517E4DECBD6Cc5ce5a8
-PAYRA_POLYGON_PRIVATE_KEY=
+PAYRA_POLYGON_OCP_GATEWAY_CONTRACT_ADDRESS=0xc56c55D9cF0FF05c85A2DF5BFB9a65b34804063b
+PAYRA_POLYGON_SIGNATURE_KEY=
 PAYRA_POLYGON_MERCHANT_ID=
-PAYRA_POLYGON_RPC_URL_1=
+PAYRA_POLYGON_RPC_URL_1=https://polygon-rpc.com
 PAYRA_POLYGON_RPC_URL_2=
 
 # Ethereum Network Configuration
-PAYRA_ETHEREUM_CORE_FORWARD_CONTRACT_ADDRESS=
-PAYRA_ETHEREUM_PRIVATE_KEY=
+PAYRA_ETHEREUM_OCP_GATEWAY_CONTRACT_ADDRESS=
+PAYRA_ETHEREUM_SIGNATURE_KEY=
 PAYRA_ETHEREUM_MERCHANT_ID=
 PAYRA_ETHEREUM_RPC_URL_1=
 PAYRA_ETHEREUM_RPC_URL_2=
 
 # Linea Network Configuration
-PAYRA_LINEA_CORE_FORWARD_CONTRACT_ADDRESS=
-PAYRA_LINEA_PRIVATE_KEY=
+PAYRA_LINEA_OCP_GATEWAY_CONTRACT_ADDRESS=
+PAYRA_LINEA_SIGNATURE__KEY=
 PAYRA_LINEA_MERCHANT_ID=
 PAYRA_LINEA_RPC_URL_1=
 PAYRA_LINEA_RPC_URL_2=
@@ -117,15 +140,16 @@ PAYRA_LINEA_RPC_URL_2=
 
 #### Important Notes
 
--   The cache automatically refreshes when it expires.    
--   You can adjust the cache duration by setting  `PAYRA_EXCHANGE_RATE_CACHE_TIME`:
-    -   `5`  → cache for 5 minutes
-    -   `60`  → cache for 1 hour
-    -   `720`  → cache for 12 hours (default)
-- Each network (Polygon, Ethereum, Linea) has its own  **MERCHANT_ID**,  **PRIVATE_KEY**, and  **RPC URLs**.  
+- The cache automatically refreshes when it expires.
+- You can adjust the cache duration by setting `PAYRA_EXCHANGE_RATE_CACHE_TIME`:
+	-  `5` → cache for 5 minutes
+	-  `60` → cache for 1 hour
+	-  `720` → cache for 12 hours (default)
+- Each network (Polygon, Ethereum, Linea) has its own **merchant ID**, **signature key**, and **RPC URLs**.
 - The SDK automatically detects which chain configuration to use based on the selected network.
 - You can use multiple RPC URLs for redundancy (the SDK will automatically fall back if one fails).
 - Contract addresses correspond to the deployed Payra Core Forward contracts per network.
+
 
 ## Usage Example
 
@@ -215,10 +239,10 @@ if ($orderStatus['paid']) {
     "fee"       => 3600,   // fee in wei
     "timestamp" => 1765138941 // UNIX timestamp
 ]
-
 ```
 
 ---
+
 ### Check Order Paid Status
 
 Perform a  **simple payment check**  for a specific order. This method only verifies whether the order has been paid (`true`  or  `false`) and does  **not**  return any additional payment details.
@@ -335,17 +359,20 @@ PAYRA_EXCHANGE_RATE_API_KEY=your_api_key_here
 
 **Note:** The free plan allows 1,500 requests per month, which is sufficient for most stores. Exchange rates on this plan are updated every 24 hours, so with caching, it’s more than enough. Paid plans offer faster update intervals.
 
+
 ## Security Notice
 
-Never expose your private key in frontend or client-side code.  
+Never expose your signature key in frontend or client-side code.  
 This SDK is  **server-side only**  and must be used securely on your backend. Never use it in frontend or browser environments. Also, never commit your `.env`  file to version control.
+
 
 ## Project
 
--   [https://payra.cash](https://payra.cash)
--   [https://payra.tech](https://payra.tech)
--   [https://payra.xyz](https://payra.xyz)
--   [https://payra.eth](https://payra.eth.limo) - suporrted by Brave Browser or .limo
+- [https://payra.cash](https://payra.cash)
+- [https://payra.tech](https://payra.tech)
+- [https://payra.xyz](https://payra.xyz)
+- [https://payra.eth](https://payra.eth.limo) - suporrted by Brave and Opera Browser or .limo
+
 
 ## Social Media
 
@@ -354,6 +381,6 @@ This SDK is  **server-side only**  and must be used securely on your backend. Ne
 - [Twix (X)](https://x.com/PayraCash)
 - [Dev.to](https://dev.to/payracash)
 
-##  License
 
+## License
 MIT © [Payra](https://payra.cash)

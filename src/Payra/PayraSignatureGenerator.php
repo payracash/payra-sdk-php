@@ -14,7 +14,7 @@ class PayraSignatureGenerator
     /**
      * Constructor for PayraSignatureGenerator.
      *
-     * @param string $merchantPrivateKey Your Ethereum private key (64 hex characters, without '0x').
+     * @param string $merchantSignatureKey Your Ethereum private key (64 hex characters, without '0x').
      * @throws \Exception If the private key is invalid.
      */
     public function __construct()
@@ -46,10 +46,10 @@ class PayraSignatureGenerator
     ): string {
         $network = strtoupper($network);
 
-        $merchantPrivateKey = $_ENV["PAYRA_{$network}_PRIVATE_KEY"] ?? null;
         $merchantId = $_ENV["PAYRA_{$network}_MERCHANT_ID"] ?? null;
+        $merchantSignatureKey = $_ENV["PAYRA_{$network}_SIGNATURE_KEY"] ?? null;
 
-        if (!$merchantPrivateKey || !$merchantId) {
+        if (!$merchantSignatureKey || !$merchantId) {
             throw new \Exception("Missing merchant credentials for network: $network");
         }
 
@@ -60,10 +60,12 @@ class PayraSignatureGenerator
 
             $encoded = $this->ethabi->encodeParameters($types, $values);
             $messageHash = ltrim($this->utils::sha3($encoded), '0x');
+
+
             $prefixedMessage = "\x19Ethereum Signed Message:\n32" . hex2bin($messageHash);
             $finalHash = $this->utils::sha3($prefixedMessage);
 
-            $key = $this->ec->keyFromPrivate($merchantPrivateKey, 'hex');
+            $key = $this->ec->keyFromPrivate($merchantSignatureKey, 'hex');
             $signature = $key->sign($finalHash, ['canonical' => true]);
 
             $r = str_pad($signature->r->toString(16), 64, '0', STR_PAD_LEFT);
