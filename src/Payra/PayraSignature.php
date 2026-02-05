@@ -5,14 +5,14 @@ use Web3\Contracts\Ethabi;
 use Elliptic\EC;
 use Web3\Utils;
 
-class PayraSignatureGenerator
+class PayraSignature
 {
     private Ec $ec;
     private Ethabi $ethabi;
     private Utils $utils;
 
     /**
-     * Constructor for PayraSignatureGenerator.
+     * Constructor for PayraSignature.
      *
      * @param string $merchantSignatureKey Your Ethereum private key (64 hex characters, without '0x').
      * @throws \Exception If the private key is invalid.
@@ -36,7 +36,7 @@ class PayraSignatureGenerator
      * @return string Signature in the format '0x<r><s><v>' (65-byte hex with '0x' prefix).
      * @throws \Exception If an error occurs during signature generation.
      */
-    public function generateSignature(
+    public function generate(
         string $network,
         string $tokenAddress,
         string $orderId,
@@ -60,7 +60,6 @@ class PayraSignatureGenerator
 
             $encoded = $this->ethabi->encodeParameters($types, $values);
             $messageHash = ltrim($this->utils::sha3($encoded), '0x');
-
 
             $prefixedMessage = "\x19Ethereum Signed Message:\n32" . hex2bin($messageHash);
             $finalHash = $this->utils::sha3($prefixedMessage);

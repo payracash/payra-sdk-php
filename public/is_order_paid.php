@@ -3,8 +3,7 @@
 // Requires Composer's autoloader to initialize all classes
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use App\Payra\PayraSignatureGenerator;
-use App\Payra\PayraUtils;
+use App\Payra\PayraOrderService;
 
 // Load environment variables from the .env file
 use Dotenv\Dotenv;
@@ -51,7 +50,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 // Validate params
-$requiredParams = ['network', 'tokenAddress', 'orderId', 'amountWei', 'timestamp', 'payerAddress'];
+$requiredParams = ['network', 'orderId'];
 foreach ($requiredParams as $param) {
     if (!isset($data[$param])) {
         http_response_code(400);
@@ -61,33 +60,27 @@ foreach ($requiredParams as $param) {
 }
 
 try {
-    // Convert USD to Wei if you need
-    // $amountWei = PayraUtils::toWei(3.45, 'polygon', 'usdt');
-
     // Instance "SDK"
-    $signatureGenerator = new PayraSignatureGenerator();
+    $orderService = new PayraOrderService();
 
-    // Call generate Signature
-    $signature = $signatureGenerator->generateSignature(
+    // Call order verification (return array)
+    $isPaid = $orderService->isPaid(
         $data['network'],
-        $data['tokenAddress'],
-        $data['orderId'],
-        $data['amountWei'], // in Wei
-        (int) $data['timestamp'], // cast timestamp to int,
-        $data['payerAddress']
+        $data['orderId']
     );
 
-    // Return sign to frontend
+    // Return result to frontend
     echo json_encode([
-        'status' => 'success',
-        'signature' => $signature,
-        'message' => 'Signature generated successfully.'
+        'result'  => $verify,
     ]);
 
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     error_log('Signature error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'Internal server error.']);
+    echo json_encode([
+        'status'  => 'error',
+        'message' => 'Internal server error.'
+    ]);
 }
 
 ?>

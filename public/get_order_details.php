@@ -3,7 +3,7 @@
 // Requires Composer's autoloader to initialize all classes
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use App\Payra\PayraOrderVerification;
+use App\Payra\PayraOrderService;
 
 // Load environment variables from the .env file
 use Dotenv\Dotenv;
@@ -61,17 +61,17 @@ foreach ($requiredParams as $param) {
 
 try {
     // Instance "SDK"
-    $orderVerification = new PayraOrderVerification();
+    $orderService = new PayraOrderService();
 
     // Call order verification (return array)
-    $verify = $orderVerification->isOrderPaid(
+    $orderDetails = $orderService->getDetails(
         $data['network'],
         $data['orderId']
     );
 
     // Return result to frontend
     echo json_encode([
-        'result'  => $verify,
+        'result'  => $orderDetails,
     ]);
 
 } catch (\Throwable $e) {
@@ -79,7 +79,8 @@ try {
     http_response_code(500);
     echo json_encode([
         'status'  => 'error',
-        'message' => 'Internal server error.'
+        'message' => 'Internal server error.',
+        'reason' => $e->getMessage(),
     ]);
 }
 

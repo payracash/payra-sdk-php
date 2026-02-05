@@ -6,9 +6,7 @@ This SDK provides:
 - Secure generation of **ECDSA signatures** compatible with the Payra smart contract — used for order payment verification.
 - Simple methods for **checking the on-chain status of orders** to confirm completed payments.
 
-
 ## How It Works
-
 
 The typical flow for signing and verifying a Payra transaction:
 1. The **frontend** prepares all required payment parameters:
@@ -18,10 +16,10 @@ The typical flow for signing and verifying a Payra transaction:
 	-  **Amount WEI** – already converted to the smallest unit (e.g. wei, 10⁶)
 	-  **Timestamp** – Unix timestamp of the order
 	-  **Payer wallet address** – the wallet address from which the user will make the on-chain payment
-2. The frontend sends these parameters to your **backend**.
-3. The **backend** uses this SDK to generate a cryptographic **ECDSA signature** with its signature key (performed **offline**).
-4. The backend returns the generated signature to the frontend.
-5. The **frontend** calls the Payra smart contract (`payOrder`) with all parameters **plus** the signature.
+3. The frontend sends these parameters to your **backend**.
+4. The **backend** uses this SDK to generate a cryptographic **ECDSA signature** with its signature key (performed **offline**).
+5. The backend returns the generated signature to the frontend.
+6. The **frontend** calls the Payra smart contract (`payOrder`) with all parameters **plus** the signature.
 
 This process ensures full compatibility between your backend and Payra’s on-chain verification logic.
 
@@ -49,7 +47,6 @@ Before installing this package, make sure you have a **MerchantID**
 - Your **Merchant ID** (unique for each blockchain network)
 - Your **Signature Key** (used to sign Payra transactions securely)
 
-
 Additionally:
 To obtain your **RPC URLs** which are required for reading on-chain order statuses directly from the blockchain, you can use the public free endpoints provided with this package or create an account on one of the following services for better performance and reliability:
 
@@ -64,7 +61,6 @@ To obtain your **RPC URLs** which are required for reading on-chain order status
 Optional (recommended):
 - Create a free API key at [ExchangeRate API](https://www.exchangerate-api.com/) to enable **automatic fiat → USD conversions** using the built-in utility helpers.
 
-
 ## Installation
 
 ### Requirements
@@ -74,7 +70,7 @@ Optional (recommended):
 - cURL extension enabled  
 - `.env` file for environment configuration  
 
-#### Via Composer (recommended)
+### Via Composer (recommended)
 
 ```bash
 composer require payracash/payra-sdk-php
@@ -132,7 +128,7 @@ PAYRA_ETHEREUM_RPC_URL_2=
 
 # Linea Network Configuration
 PAYRA_LINEA_OCP_GATEWAY_CONTRACT_ADDRESS=
-PAYRA_LINEA_SIGNATURE__KEY=
+PAYRA_LINEA_SIGNATURE_KEY=
 PAYRA_LINEA_MERCHANT_ID=
 PAYRA_LINEA_RPC_URL_1=
 PAYRA_LINEA_RPC_URL_2=
@@ -150,13 +146,12 @@ PAYRA_LINEA_RPC_URL_2=
 - You can use multiple RPC URLs for redundancy (the SDK will automatically fall back if one fails).
 - Contract addresses correspond to the deployed Payra Core Forward contracts per network.
 
-
 ## Usage Example
 
 ### Generate Signature
 
 ```php
-use App\Payra\PayraSignatureGenerator;
+use App\Payra\PayraSignature;
 use App\Payra\PayraUtils;
 
 // Load environment
@@ -166,9 +161,9 @@ $dotenv->load();
 // Convert USD to Wei
 $amountWei = PayraUtils::toWei(3.45, 'polygon', 'usdt'); // in smallest token unit (Wei for USDT/USDC)
 
-$generator = new PayraSignatureGenerator();
+$payraSignature = new PayraSignature();
 
-$signature = $generator->generateSignature(
+$signature = $payraSignature->generate(
     $network,         	// e.g. "polygon"
     $tokenAddress,    	// ERC-20 USDT or USDC
     $orderId,         	// string (unique per merchantId)
@@ -193,10 +188,9 @@ Use `PayraUtils::toWei($usdAmount, $network, $tokenSymbol)` to easily convert US
 
 ---
 
-### Get Order Status
+### Get Order Details
 
 Retrieve **full payment details** for a specific order from the Payra smart contract. This method returns the complete on-chain payment data associated with the order, including:
-
 -   whether the order has been paid,
 -   the payment token address,
 -   the paid amount,
@@ -206,21 +200,21 @@ Retrieve **full payment details** for a specific order from the Payra smart cont
 Use this method when you need  **detailed information**  about the payment or want to display full transaction data.
 
 ```php
-use App\Payra\PayraOrderVerification;
+use App\Payra\PayraOrderService;
 
 // Load environment
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-$orderVerification = new PayraOrderVerification();
+$orderService = new PayraOrderService();
 
 // Call order verification (returns array)
-$orderStatus = $orderVerification->getOrderStatus(
+$orderDetails = $orderService->getDetails(
     $network,   // e.g. "polygon"
     $orderId    // string (unique per merchantId)
 );
 
-if ($orderStatus['paid']) {
+if ($orderDetails['paid']) {
     echo "Order is paid";
 } else {
     echo "Order not yet paid.";
@@ -250,21 +244,21 @@ Perform a  **simple payment check**  for a specific order. This method only veri
 Use this method when you only need a  **quick boolean confirmation**  of the payment status.
 
 ```php
-use App\Payra\PayraOrderVerification;
+use App\Payra\PayraOrderService;
 
 // Load environment
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-$orderVerification = new PayraOrderVerification();
+$orderService = new PayraOrderService();
 
 // Call order verification (returns array)
-$verify = $orderVerification->isOrderPaid(
+$isPaid = $orderService->isPaid(
     $network,   // e.g. "polygon"
     $orderId    // string (unique per merchantId)
 );
 
-if ($verify['paid']) {
+if ($isPaid['paid']) {
     echo "Order is paid";
 } else {
     echo "Order not yet paid.";
@@ -359,12 +353,10 @@ PAYRA_EXCHANGE_RATE_API_KEY=your_api_key_here
 
 **Note:** The free plan allows 1,500 requests per month, which is sufficient for most stores. Exchange rates on this plan are updated every 24 hours, so with caching, it’s more than enough. Paid plans offer faster update intervals.
 
-
 ## Security Notice
 
 Never expose your signature key in frontend or client-side code.  
 This SDK is  **server-side only**  and must be used securely on your backend. Never use it in frontend or browser environments. Also, never commit your `.env`  file to version control.
-
 
 ## Project
 
@@ -373,7 +365,6 @@ This SDK is  **server-side only**  and must be used securely on your backend. Ne
 - [https://payra.xyz](https://payra.xyz)
 - [https://payra.eth](https://payra.eth.limo) - suporrted by Brave and Opera Browser or .limo
 
-
 ## Social Media
 
 - [Telegram Payra Group](https://t.me/+GhTyJJrd4SMyMDA0)
@@ -381,6 +372,6 @@ This SDK is  **server-side only**  and must be used securely on your backend. Ne
 - [Twix (X)](https://x.com/PayraCash)
 - [Dev.to](https://dev.to/payracash)
 
-
 ## License
+
 MIT © [Payra](https://payra.cash)

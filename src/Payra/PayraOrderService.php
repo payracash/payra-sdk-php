@@ -7,7 +7,7 @@ use Web3\Contract;
 use Web3\Contracts\Ethabi;
 use Web3\Providers\HttpProvider;
 
-class PayraOrderVerification
+class PayraOrderService
 {
     /**
      * Get detailed status of an order from Payra smart contract.
@@ -35,7 +35,7 @@ class PayraOrderVerification
      *   @type int|null    $timestamp
      * }
      */
-    public function getOrderStatus(string $network, string $orderId): array
+    public function getDetails(string $network, string $orderId): array
     {
         try {
             $setup = $this->getPayraContracts($network);
@@ -91,7 +91,7 @@ class PayraOrderVerification
      *              FALSE if the signature is invalid or does not match.
      * @throws \Exception If verification cannot be performed due to invalid inputs, missing signature fields, or cryptographic errors.
      */
-    public function isOrderPaid(string $network, string $orderId): array
+    public function isPaid(string $network, string $orderId): array
     {
         try {
             $setup = $this->getPayraContracts($network);
