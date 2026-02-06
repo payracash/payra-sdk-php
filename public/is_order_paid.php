@@ -64,14 +64,14 @@ try {
     $orderService = new PayraOrderService();
 
     // Call order verification (return array)
-    $isPaid = $orderService->isPaid(
+    $result = $orderService->isPaid(
         $data['network'],
         $data['orderId']
     );
 
     // Return result to frontend
     echo json_encode([
-        'result'  => $verify,
+        'result' => $result,
     ]);
 
 } catch (\Throwable $e) {

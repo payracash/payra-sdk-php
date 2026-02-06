@@ -71,7 +71,7 @@ try {
 
     // Return result to frontend
     echo json_encode([
-        'result'  => $orderDetails,
+        'result' => $orderDetails,
     ]);
 
 } catch (\Throwable $e) {

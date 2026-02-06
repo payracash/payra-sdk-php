@@ -1,4 +1,4 @@
-# Payra  PHP SDK
+# Payra PHP SDK
 
 Official **PHP SDK** for integrating **Payra's on-chain payment system** into your backend applications.
 
@@ -208,30 +208,29 @@ $dotenv->load();
 
 $orderService = new PayraOrderService();
 
-// Call order verification (returns array)
 $orderDetails = $orderService->getDetails(
     $network,   // e.g. "polygon"
     $orderId    // string (unique per merchantId)
 );
 
-if ($orderDetails['paid']) {
-    echo "Order is paid";
-} else {
-    echo "Order not yet paid.";
-}
+echo  json_encode([
+	$orderDetails,
+]);
 ```
 
 ### Example response structure
 
 ```php
 [
-    "success"   => true,   // boolean: whether the RPC request succeeded
-    "error"     => null,   // string|null: error message if the request failed
-    "paid"      => true,   // boolean: whether the order is marked as paid on-chain
-    "token"     => '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // payment token (USDT, USDC, etc.)
-    "amount"    => 400000, // amount in wei
-    "fee"       => 3600,   // fee in wei
-    "timestamp" => 1765138941 // UNIX timestamp
+	{
+	    "success"   => true,   // boolean: whether the RPC request succeeded
+	    "error"     => null,   // string|null: error message if the request failed
+	    "paid"      => true,   // boolean: whether the order is marked as paid on-chain
+	    "token"     => '0xc2132d05d31c914a87c6611c10748aeb04b58e8f', // payment token (USDT, USDC, etc.)
+	    "amount"    => 400000, // amount in wei
+	    "fee"       => 3600,   // fee in wei
+	    "timestamp" => 1765138941 // UNIX timestamp
+	}
 ]
 ```
 
@@ -252,26 +251,26 @@ $dotenv->load();
 
 $orderService = new PayraOrderService();
 
-// Call order verification (returns array)
-$isPaid = $orderService->isPaid(
+$result = $orderService->isPaid(
     $network,   // e.g. "polygon"
     $orderId    // string (unique per merchantId)
 );
 
-if ($isPaid['paid']) {
-    echo "Order is paid";
-} else {
-    echo "Order not yet paid.";
-}
+// Return result to frontend
+echo  json_encode([
+	$result,
+]);
 ```
 
 ### Example response structure
 
 ```php
 [
-    "success" => true,   // boolean: whether the RPC request succeeded
-    "paid"    => true,   // boolean: whether the order is marked as paid on-chain
-    "error"   => null,   // string|null: error message if the request failed, otherwise null
+	{
+	    "success" => true,   // boolean: whether the RPC request succeeded
+	    "paid"    => true,   // boolean: whether the order is marked as paid on-chain
+	    "error"   => null,   // string|null: error message if the request failed, otherwise null
+	}
 ]
 ```
 
@@ -328,8 +327,8 @@ PayraUtils::fromWei('3340000', 'polygon', 'usdt', 4); // "3.3400"
 
 Payra processes all payments in  **USD**.  If your store uses another currency (like EUR, AUD, or GBP), you can:
 
--   Convert the amount to USD on your backend manually,  **or**
--   Use the built-in helper provided in the SDK.
+-  Convert the amount to USD on your backend manually,  **or**
+-  Use the built-in helper provided in the SDK.
 
 ```php
 use App\Payra\PayraUtils;
@@ -342,14 +341,14 @@ $amountUSD = PayraUtils::convertToUSD(120.43, 'EUR'); // converted amount in USD
 
 To use the conversion helper, you need a free API key from  **[exchangerate-api.com](https://exchangerate-api.com/)**.
 
-1.  Register a free account and get your API key.
-2.  Add the key to your  `.env`  file:
+1. Register a free account and get your API key.
+2. Add the key to your  `.env`  file:
 
 ```php
 PAYRA_EXCHANGE_RATE_API_KEY=your_api_key_here
 ```
 
-4.  That’s it — Payra will automatically fetch the exchange rate and calculate the USD amount.
+4. That’s it — Payra will automatically fetch the exchange rate and calculate the USD amount.
 
 **Note:** The free plan allows 1,500 requests per month, which is sufficient for most stores. Exchange rates on this plan are updated every 24 hours, so with caching, it’s more than enough. Paid plans offer faster update intervals.
 
